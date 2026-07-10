@@ -1,0 +1,24 @@
+STEPS TO INSTALL GENTOO ON HARDWARE:
+
+1. Verify on Windows:
+
+Check BIOS mode (UEFI vs Legacy) via msinfo32. (UEFI)
+Check Secure Boot status via msinfo32. (ON)
+
+CURRENT:
+
+-	CPU: AMD Ryzen 5
+-	GPU: AMD Radeon 760M Graphics
+-	Motherboard: Lenovo LNVNB161216
+-	Network adapter (Wi-Fi): RZ616 Wi-Fi 6E 160MHz
+-	Storage controller: Standard NVM Express Controller
+
+2. Shut down computer
+
+3. Swap out the SSD: https://www.youtube.com/watch?v=uZkmsJW5bbc
+
+4. Plug in USB with the minimal installation CD
+
+5. Power up and start spamming Fn + F12
+
+6. Select USB from the boot menu

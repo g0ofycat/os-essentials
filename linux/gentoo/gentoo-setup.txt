@@ -1,0 +1,343 @@
+LINUX: GENTOO
+
+-	Basic Schema for installing Gentoo Linux: https://www.gentoo.org/
+-	Architecture specifications: x64, AMD: CPU & GPU, previous OS is Windows 11
+-	Other specifications: Using UEFI, OpenRC, no Secure Boot due to VirtualBox
+-	ISO Installations for USB: https://www.gentoo.org/downloads/ (Install the minimal Installation CD)
+-	Guide Structured on: https://wiki.gentoo.org/wiki/Handbook:AMD64/Installation/About
+-	General purpose, which is why I wrote it in 3rd person if anyone wants to install Gentoo for some reason
+
+PART I: INSTALL THE GENTOO BOOTLOADER
+
+--- START: I ---
+
+1. Partition Disk:
+
+cfdisk
+
+OR
+
+parted /dev/sda -- mklabel gpt
+parted /dev/sda -- mkpart efi fat32 1M 513M
+parted /dev/sda -- set 1 esp on
+parted /dev/sda -- mkpart swap linux-swap 513M 2561M
+parted /dev/sda -- mkpart root ext4 2561M 100%
+
+---
+
+The /dev/sda disk will be partitioned into 3 parts: an EFI partition for the bootloader, a swap partition for overflow memory, and a root partition where the entire Gentoo filesystem will live.
+
+2. Format Disk:
+
+mkfs.vfat -F 32 /dev/sda1
+mkswap /dev/sda2
+swapon /dev/sda2
+mkfs.ext4 /dev/sda3
+
+---
+
+As in section 1: sda1 will be used for the Extensible Firmware Integration (EFI) partition for the bootloader, sda2 will be for swap space when RAM is full, and sda3 will be use for the actual Gentoo filesystem.
+
+3. Mount Disks
+
+mount /dev/sda3 /mnt/gentoo
+mkdir -p /mnt/gentoo/boot/efi
+mount /dev/sda1 /mnt/gentoo/boot/efi
+
+4. Download and extract stage3
+
+The wget link is the latest version at the time of writing this. Find the latest version here: https://distfiles-cdn-origin.gentoo.org/releases/amd64/autobuilds/current-stage3-amd64-openrc/
+
+The first tar.xz without the .asc filetype is the latest one
+
+---
+
+cd /mnt/gentoo
+
+wget https://distfiles.gentoo.org/releases/amd64/autobuilds/current-stage3-amd64-openrc/stage3-amd64-openrc-20260705T170105Z.tar.xz
+
+tar xpf stage3-*.tar.xz --xattrs-include='*.*' --numeric-owner
+
+5. Configure make.conf
+
+nano /etc/portage/make.conf
+
+---
+
+ADD:
+
+---
+
+COMMON_FLAGS="-O2 -pipe -march=native"
+MAKEOPTS="-j<available_cores>"
+ACCEPT_LICENSE="*"
+GENTOO_MIRRORS="https://distfiles.gentoo.org"
+
+---
+
+C-o to save and C-x to exit
+
+6. Copy DNS and mount virtual filesystems
+
+cp --dereference /etc/resolv.conf /mnt/gentoo/etc
+mount --types proc /proc /mnt/gentoo/proc
+mount --rbind /sys /mnt/gentoo/sys
+mount --make-rslave /mnt/gentoo/sys
+mount --rbind /dev /mnt/gentoo/dev
+mount --make-rslave /mnt/gentoo/dev
+mount --bind /run /mnt/gentoo/run
+mount --make-slave /mnt/gentoo/run
+
+7. Chroot
+
+chroot /mnt/gentoo /bin/bash
+source /etc/profile
+export PS1="(chroot) ${PS1}"
+
+8. Download and Sync Portage (Gentoo Package Manager)
+
+mkdir -p /var/db/repos/gentoo
+emerge-webrsync
+
+9. Select correct profile (Optional)
+
+Recommended: default/linux/amd64/23.0 (stable)
+Find it in "eselect profile list" and run:
+
+eselect profile set <profile_number>
+
+Profile should already be the correct one
+
+10. Update core packages
+
+emerge --ask --verbose --update --deep --newuse @world
+
+---
+
+Full package manager command to recursively update dependencies along with error handling
+
+11. Install Kernel binaries
+
+emerge --ask sys-kernel/installkernel
+etc-update
+emerge --ask sys-kernel/gentoo-kernel-bin
+
+---
+
+Since actually building the Kernel from source would take hours. If you want to build it from scratch, run the following commands:
+
+---
+
+emerge --ask sys-kernel/gentoo-sources
+
+cd /usr/src/linux
+make menuconfig
+make -j<amount_of_cores>
+make modules_install
+make install
+
+12. Install Firmware:
+
+echo "sys-kernel/linux-firmware linux-fw-redistributable" >> /etc/portage/package.license/linux-firmware
+echo "sys-kernel/linux-firmware ~amd64" >> /etc/portage/package.accept_keywords/linux-firmware
+emerge --ask sys-kernel/linux-firmware
+
+13. Configure fstab
+
+nano /etc/fstab
+
+---
+
+ADD:
+
+---
+
+/dev/sda1   /boot/efi   vfat    noatime    0 2
+/dev/sda2   none        swap    sw         0 0
+/dev/sda3   /           ext4    noatime    0 1
+
+14. Set timezone
+
+echo "<your_timezone>" > /etc/timezone
+emerge --config sys-libs/timezone-data
+
+15. Set locale
+
+nano /etc/locale.gen
+
+---
+
+Uncomment your timezone
+
+Save and Exit, then run:
+
+---
+
+locale-gen
+eselect locale list
+eselect locale set <number for "timezone".utf8>
+env-update && source /etc/profile && export PS1="(chroot) ${PS1}"
+
+16. Set hostname
+
+nano /etc/hosts
+
+---
+
+ADD:
+
+---
+
+127.0.0.1    <hostname>
+
+17. Set root password
+
+passwd
+
+18. Install misc tools
+
+emerge dhcpcd sudo screenfetch grub efibootmgr
+
+19. Install Grub
+
+grub-install /dev/sda
+grub-mkconfig -o /boot/grub/grub.cfg
+
+20. Extra merges for user
+
+emerge --ask sys-apps/dbus sys-auth/elogind
+
+rc-service dbus start
+rc-service elogind start
+rc-update add dbus default
+rc-update add elogind boot
+rc-update add udev sysinit
+rc-update add udev-trigger sysinit
+
+21. Exit and reboot
+
+exit
+cd
+umount -l /mnt/gentoo/dev{/shm,/pts,}
+umount -R /mnt/gentoo
+reboot
+
+-- EXTRA: --
+
+E-1: Configuring sudo
+
+EDITOR=nano visudo
+
+---
+
+UNCOMMENT:
+
+---
+
+%wheel ALL=(ALL:ALL) ALL
+
+---
+
+Save and Exit
+
+E-2: Adding a user
+
+useradd -m -G wheel,users,... -s /bin/bash <your_name>
+
+---
+
+Other permissions: video,audio,usb,input,cdrom
+
+E-2.1: Setting user password
+
+passwd <your_name>
+
+E-3: Removing Stage 3 tarball
+
+The one downloaded in step 4
+
+--- END: I ---
+
+PART II: Installing the Desktop GUI Environment
+
+--- START: II ---
+
+1. Make building faster in /etc/portage/make.conf (Optional)
+
+COMMON_FLAGS="-O2 -pipe -march=native"
+MAKEOPTS="-j<available_cores>"
+USE="X policykit udisks"
+
+2. Install KDE Plasma and Wayland
+
+2-1. Switch to correct profile
+
+sudo eselect profile set <.../desktop/plasma profile #>
+
+2-2. Install all prerequisites
+
+sudo emerge --ask --changed-use --deep @world
+
+2-3. Install Xorg
+
+echo "*/* VIDEO_CARDS: -* amdgpu radeonsi" | sudo tee -a /etc/portage/package.use/00video_cards
+sudo emerge --ask x11-base/xorg-drivers
+sudo emerge --ask x11-base/xwayland
+
+2-4. Install
+
+sudo emerge kde-plasma/plasma-meta
+sudo etc-update
+sudo emerge kde-plasma/plasma-meta
+sudo emerge gui-libs/gtk gui-libs/libadwaita
+
+3. Install Power Management
+
+sudo emerge sys-power/power-profiles-daemon sys-power/acpid
+sudo rc-update add power-profiles-daemon default
+sudo rc-update add acpid default
+
+4. Adding Fonts and Icon Theming
+
+sudo emerge media-fonts/dejavu media-fonts/liberation-fonts media-fonts/noto media-fonts/noto-emoji
+sudo emerge x11-themes/adwaita-qt
+
+5. Add Screen Sharing Support
+
+sudo emerge sys-apps/xdg-desktop-portal
+
+6. Add Bluetooth
+
+echo "net-wireless/bluez bluetooth" | sudo tee -a /etc/portage/package.use/bluez
+sudo emerge net-wireless/bluez
+sudo rc-update add bluetooth default
+
+7. Add common apps
+
+sudo emerge www-client/firefox app-office/libreoffice media-video/vlc sys-fs/ntfs3g sys-fs/exfatprogs
+
+8. Add apps
+
+sudo emerge kde-plasma/discover
+
+9. Add Flatpak
+
+sudo emerge sys-apps/flatpak
+flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+
+10. Add display manager
+
+sudo emerge x11-misc/sddm
+sudo rc-update add sddm default
+
+11. Trim for SSD (Sunday, 3:00 AM)
+
+sudo emerge sys-process/cronie
+sudo rc-update add cronie default
+sudo bash -c '(crontab -l 2>/dev/null; echo "0 3 * * 0 /sbin/fstrim -av") | crontab -'
+
+12. Reboot
+
+sudo reboot
+
+--- END: II ---
