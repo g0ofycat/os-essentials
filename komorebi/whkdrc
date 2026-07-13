@@ -56,7 +56,7 @@ ctrl + shift + f         : komorebic toggle-monocle
 
 # Window manager options
 ctrl + shift + r         : komorebic retile
-ctrl + shift + p         : komorebic toggle-pause
+ctrl + shift + m         : komorebic toggle-pause
 
 # Layouts
 ctrl + ,                 : komorebic flip-layout horizontal
