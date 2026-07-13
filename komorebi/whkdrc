@@ -1,3 +1,5 @@
+# .config
+
 .shell powershell
 
 
@@ -49,16 +51,16 @@ ctrl + shift + oem_plus  : komorebic resize-axis vertical increase
 ctrl + shift + oem_minus : komorebic resize-axis vertical decrease
 
 # Manipulate windows
-ctrl + t                 : komorebic toggle-float
+ctrl + shift + t         : komorebic toggle-float
 ctrl + shift + f         : komorebic toggle-monocle
 
 # Window manager options
 ctrl + shift + r         : komorebic retile
-ctrl + p                 : komorebic toggle-pause
+ctrl + shift + p         : komorebic toggle-pause
 
 # Layouts
-ctrl + x                 : komorebic flip-layout horizontal
-ctrl + y                 : komorebic flip-layout vertical
+ctrl + ,                 : komorebic flip-layout horizontal
+ctrl + .                 : komorebic flip-layout vertical
 
 # Workspaces
 
