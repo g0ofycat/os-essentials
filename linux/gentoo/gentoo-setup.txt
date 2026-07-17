@@ -119,8 +119,8 @@ Full package manager command to recursively update dependencies along with error
 11. Install Kernel binaries
 
 emerge --ask sys-kernel/installkernel
-etc-update
 emerge --ask sys-kernel/gentoo-kernel-bin
+etc-update
 
 ---
 
