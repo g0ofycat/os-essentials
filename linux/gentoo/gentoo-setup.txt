@@ -11,7 +11,7 @@ PART I: INSTALL THE GENTOO BOOTLOADER
 
 --- START: I ---
 
-1. Partition Disk:
+1. Partition Disk
 
 cfdisk
 
@@ -27,7 +27,7 @@ parted /dev/sda -- mkpart root ext4 2561M 100%
 
 The /dev/sda disk will be partitioned into 3 parts: an EFI partition for the bootloader, a swap partition for overflow memory, and a root partition where the entire Gentoo filesystem will live.
 
-2. Format Disk:
+2. Format Disk
 
 mkfs.vfat -F 32 /dev/sda1
 mkswap /dev/sda2
@@ -121,6 +121,7 @@ Full package manager command to recursively update dependencies along with error
 emerge --ask sys-kernel/installkernel
 emerge --ask sys-kernel/gentoo-kernel-bin
 etc-update
+(Redo gentoo-kernel-bin if needed)
 
 ---
 
@@ -136,7 +137,7 @@ make -j<amount_of_cores>
 make modules_install
 make install
 
-12. Install Firmware:
+12. Install Firmware (Make Dirs if needed)
 
 echo "sys-kernel/linux-firmware linux-fw-redistributable" >> /etc/portage/package.license/linux-firmware
 echo "sys-kernel/linux-firmware ~amd64" >> /etc/portage/package.accept_keywords/linux-firmware
