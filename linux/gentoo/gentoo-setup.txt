@@ -197,7 +197,7 @@ passwd
 
 18. Install misc tools
 
-emerge dhcpcd sudo screenfetch grub efibootmgr
+emerge dhcpcd sudo grub efibootmgr
 
 19. Install Grub
 
